@@ -3,12 +3,12 @@
 Gem::Specification.new do |spec|
   spec.name          = "fluent-plugin-encrypt"
   spec.version       = "0.1.1"
-  spec.authors       = ["TAGOMORI Satoshi"]
-  spec.email         = ["tagomoris@gmail.com"]
+  spec.authors       = ["shiwgui"]
+  spec.email         = ["shiwei.gui@qq.com"]
 
   spec.summary       = %q{Fluentd filter plugin to encrypt fields}
   spec.description   = %q{This plugin converts data of specified fields, by encrypting using AES and base64 encoding for encrypted values}
-  spec.homepage      = "https://github.com/tagomoris/fluent-plugin-encrypt"
+  spec.homepage      = "https://github.com/hotlebe/fluent-plugin-encrypt"
   spec.license       = "Apache-2.0"
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
