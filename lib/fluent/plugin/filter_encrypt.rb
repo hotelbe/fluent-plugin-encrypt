@@ -7,17 +7,19 @@ module Fluent
     Fluent::Plugin.register_filter('encrypt', self)
 
     SUPPORTED_ALGORITHMS = {
-      aes_256_cbc: { name: "AES-256-CBC", use_iv: true },
-      aes_192_cbc: { name: "AES-192-CBC", use_iv: true },
-      aes_128_cbc: { name: "AES-128-CBC", use_iv: true },
-      aes_256_ecb: { name: "AES-256-ECB", use_iv: false },
-      aes_192_ecb: { name: "AES-192-ECB", use_iv: false },
-      aes_128_ecb: { name: "AES-128-ECB", use_iv: false },
+        aes_256_cbc: { name: "AES-256-CBC", use_iv: true },
+        aes_192_cbc: { name: "AES-192-CBC", use_iv: true },
+        aes_128_cbc: { name: "AES-128-CBC", use_iv: true },
+        aes_256_ecb: { name: "AES-256-ECB", use_iv: false },
+        aes_192_ecb: { name: "AES-192-ECB", use_iv: false },
+        aes_128_ecb: { name: "AES-128-ECB", use_iv: false },
     }
 
-    config_param :algorithm, :enum, list: SUPPORTED_ALGORITHMS.keys, default: :aes_256_cbc
+    config_param :algorithm, :enum, list: SUPPORTED_ALGORITHMS.keys, default: :aes_128_cbc
     config_param :encrypt_key_hex, :string
     config_param :encrypt_iv_hex, :string, default: nil
+
+    config_param :encrypt_enable, :string, default: :y
 
     config_param :key,  :string, default: nil
     config_param :keys, :array, default: []
@@ -28,9 +30,9 @@ module Fluent
       super
 
       @target_keys = @keys + [@key]
-      # if @target_keys.empty?
+      #if @target_keys.empty?
       #   raise Fluent::ConfigError, "no keys specified to be encrypted"
-      # end
+      #end
 
       algorithm = SUPPORTED_ALGORITHMS[@algorithm]
       if algorithm[:use_iv] && !@encrypt_iv_hex
@@ -49,6 +51,10 @@ module Fluent
                 end
       puts "enc_iv=#{@enc_iv}"
 
+      puts "encrypt_enable=#{@encrypt_enable}"
+      @enc_enable = @encrypt_enable
+      puts "enc_enable=#{@enc_enable}"
+
       @enc_generator = ->(){
         enc = OpenSSL::Cipher.new(algorithm[:name])
         enc.encrypt
@@ -62,36 +68,29 @@ module Fluent
       new_es = MultiEventStream.new
       es.each do |time, record|
         r = record.dup
-        puts "hello01...#{target_keys.at(0)==nil}"
-        puts "hello02...#{@target_keys.at(0)==nil}"
-        puts "hello03...#{target_keys[0]=="nil"}"
-        puts "hello04...#{@target_keys[0]=="nil"}"
-        puts "hello1...#{@target_keys}"
-        puts "hello2...#{@target_keys.empty?}"
-        #puts "hello...#{@target_keys.empty}"
-        #puts "hello...#{@target_keys.empty?}"
-        if target_keys.at(0) == nil
-        # if @target_keys.empty?
-          puts "r加密前的值1=#{r}"
-          puts "r加密前的值2=#{r.to_json}"
-          e = encrypt(r.to_json).delete!("\n")
-          puts "r加密后的值=#{e}"
-          payload = {"encrypt" => e}
-          new_es.add(time, payload)
-        else
-          record.each_pair do |key, value|
-            if @target_keys.include?(key)
-              puts "key=#{key}"
-              # puts "key加密前的值1=#{value.to_json.strip}"
-              puts "key加密前的值1=#{value.to_json}"
-              r[key] = encrypt(value.to_json).delete!("\n")
-              # r[key] = r[key].delete!("\n")
-              # puts "key加密后的值2=#{r[key]}"
+        if @encrypt_enable == "y"
+          if target_keys.at(0) == nil
+            # encrypt all the payload
+            e = encrypt(r.to_json).delete!("\n")
+            payload = {"encrypt" => e}
+            new_es.add(time, payload)
+          else
+            # encrypt the node to which the key points in the payload
+            record.each_pair do |key, value|
+              if @target_keys.include?(key)
+                # puts "key=#{key}"
+                # puts "key加密前的值1=#{value.to_json.strip}"
+                # puts "key加密前的值1=#{value.to_json}"
+                r[key] = encrypt(value.to_json).delete!("\n")
+                # r[key] = r[key].delete!("\n")
+                # puts "key加密后的值2=#{r[key]}"
+              end
             end
+            new_es.add(time, r)
           end
+        else
           new_es.add(time, r)
         end
-          # new_es.add(time, r)
       end
       new_es
     end
@@ -99,7 +98,6 @@ module Fluent
     def encrypt(value)
       encrypted = ""
       enc = @enc_generator.call()
-      # puts "key加密前的值2=#{value}"
       encrypted << enc.update(value)
       encrypted << enc.final
       Base64.encode64(encrypted)

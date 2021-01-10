@@ -36,6 +36,10 @@ key=668F3B7EA156BC3C4332CDD7C5AFDD604155F152C9055B0EACDFBB7708B687BA
 iv =25443F5277938A2FD21725F273345C69
 ```
 
+KEY_16 = "dca9b9fd72d0e27b"   ZGNhOWI5ZjIzMmQwZTI3Yg==
+
+IV_16 = "0123456789ABCDEF"    MDEyMzQ1Njc4OUFCQ0RFRg==
+
 Copy these hex strings for Fluentd configuration.
 
 ### Filter plugin configuration
@@ -52,9 +56,10 @@ An example configuration to encrypt a field (named as "device_id"):
 <label @myservice>
   <filter **>
     @type encrypt
-    algorithm       aes_256_cbc # default
-    encrypt_key_hex 668F3B7EA156BC3C4332CDD7C5AFDD604155F152C9055B0EACDFBB7708B687BA
-    encrypt_iv_hex  25443F5277938A2FD21725F273345C69
+    algorithm       aes_128_cbc # default
+    encrypt_key_hex ZGNhOWI5ZjIzMmQwZTI3Yg==
+    encrypt_iv_hex  MDEyMzQ1Njc4OUFCQ0RFRg==
+    encrypt_enable  y
     key             device_id
     # Or, to encrypt values in some fields
     # keys ["device_id","user_id","session"]
